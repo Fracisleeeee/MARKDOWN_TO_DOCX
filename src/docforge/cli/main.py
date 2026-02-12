@@ -23,6 +23,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Override directory for relative template docx paths in config",
     )
+    parser.add_argument(
+        "--mermaid-format",
+        choices=["png", "svg"],
+        default=None,
+        help="Mermaid output format override (png or svg)",
+    )
     parser.add_argument("--no-mermaid", action="store_true", help="Disable Mermaid rendering")
     parser.add_argument("--verbose", action="store_true", help="Verbose logs")
     return parser
@@ -32,16 +38,26 @@ def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
 
-    base_dir = Path(__file__).resolve().parents[3]
+    if getattr(sys, "frozen", False):
+        # Packaged executable mode: keep resources relative to the exe location.
+        base_dir = Path(sys.executable).resolve().parent
+    else:
+        base_dir = Path(__file__).resolve().parents[3]
     service = BuildService(base_dir=base_dir)
+
+    config_path = Path(args.config)
+    if args.config == "config/templates.yaml":
+        # Use absolute default config to avoid cwd/temp-dir ambiguity in packaged runs.
+        config_path = base_dir / "config" / "templates.yaml"
 
     options = BuildOptions(
         input_path=Path(args.input),
         output_path=Path(args.output),
         template_type=args.doc_type,
-        config_path=Path(args.config),
+        config_path=config_path,
         template_dir=Path(args.template_dir) if args.template_dir else None,
         enable_mermaid=not args.no_mermaid,
+        mermaid_format=args.mermaid_format,
         verbose=args.verbose,
     )
 

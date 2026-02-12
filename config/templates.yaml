@@ -4,11 +4,14 @@ defaults:
   number_sections: true
   page_break_h1: true
   mermaid: true
+  mermaid_format: png
 
 tools:
   # Optional absolute paths. Leave empty to resolve from PATH.
   pandoc: null
   mmdc: null
+  # Optional mermaid config passed to mmdc -c.
+  mmdc_config: config/mermaid.json
 
 templates:
   gov:
@@ -18,7 +21,7 @@ templates:
     toc_style: gov_toc
     header_footer_profile: gov_standard
   tech:
-    reference_doc: templates/tech_template.docx
+    reference_doc: templates/tech_template_v1.docx
     default_font: Calibri
     line_spacing: 24
     toc_style: tech_toc

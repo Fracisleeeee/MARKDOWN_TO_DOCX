@@ -9,6 +9,31 @@ param(
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
+function Remove-PathWithRetry {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$TargetPath,
+    [int]$MaxAttempts = 5,
+    [int]$DelaySeconds = 1
+  )
+
+  for ($i = 1; $i -le $MaxAttempts; $i++) {
+    if (-not (Test-Path $TargetPath)) {
+      return
+    }
+
+    try {
+      Remove-Item -Recurse -Force $TargetPath
+      return
+    } catch {
+      if ($i -eq $MaxAttempts) {
+        throw "Failed to remove '$TargetPath' after $MaxAttempts attempts. Close processes using files under this directory (Explorer preview, terminal sessions, virus scanner locks), then retry."
+      }
+      Start-Sleep -Seconds $DelaySeconds
+    }
+  }
+}
+
 $ProjectRoot = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 Set-Location $ProjectRoot
 
@@ -16,8 +41,8 @@ Write-Host "[INFO] Project root: $ProjectRoot"
 
 if ($Clean) {
   Write-Host "[INFO] Cleaning build/dist directories"
-  if (Test-Path "build") { Remove-Item -Recurse -Force "build" }
-  if (Test-Path "dist") { Remove-Item -Recurse -Force "dist" }
+  if (Test-Path "build") { Remove-PathWithRetry -TargetPath "build" }
+  if (Test-Path "dist") { Remove-PathWithRetry -TargetPath "dist" }
 }
 
 if (-not (Test-Path $VenvDir)) {

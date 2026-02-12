@@ -33,6 +33,7 @@ python3 docforge_cli.py --input examples/sample_tech.md --output output/sample_t
 - `--type` optional
 - `--config` optional (default `config/templates.yaml`)
 - `--template-dir` optional (override directory for template `.docx`)
+- `--mermaid-format` optional (`png` or `svg`, default from config)
 - `--no-mermaid` optional
 - `--verbose` optional
 
@@ -59,3 +60,4 @@ python3 build.py \
 - Offline bundle: see `OFFLINE_DEPLOY.md`
 - Windows EXE packaging: see `WINDOWS_PACKAGING.md`
 - Windows scripts: `scripts/package_windows.ps1`, `scripts/test_packaged.ps1`
+- Mermaid text compatibility for Word/WPS is controlled by `config/mermaid.json` (`htmlLabels: false` by default).

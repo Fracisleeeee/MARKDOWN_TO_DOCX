@@ -1,0 +1,7 @@
+{
+  "theme": "default",
+  "flowchart": {
+    "htmlLabels": false,
+    "curve": "basis"
+  }
+}

@@ -29,9 +29,15 @@ class ToolRunner:
 
 
 class SubprocessToolRunner(ToolRunner):
-    def __init__(self, pandoc_path: str | None = None, mmdc_path: str | None = None) -> None:
+    def __init__(
+        self,
+        pandoc_path: str | None = None,
+        mmdc_path: str | None = None,
+        mmdc_config_path: str | None = None,
+    ) -> None:
         self._pandoc_path = self._resolve_executable(pandoc_path, "pandoc")
         self._mmdc_path = self._resolve_executable(mmdc_path, "mmdc")
+        self._mmdc_config_path = mmdc_config_path
 
     @staticmethod
     def _resolve_executable(override: str | None, default_name: str) -> str | None:
@@ -71,7 +77,12 @@ class SubprocessToolRunner(ToolRunner):
         if not self._mmdc_path:
             raise ToolRunnerError("mmdc is not installed or not in PATH")
         output_svg.parent.mkdir(parents=True, exist_ok=True)
-        return self._run([self._mmdc_path, "-i", str(input_mmd), "-o", str(output_svg), "-b", "transparent"])
+        cmd = [self._mmdc_path, "-i", str(input_mmd), "-o", str(output_svg), "-b", "transparent"]
+        if self._mmdc_config_path:
+            cfg = Path(self._mmdc_config_path)
+            if cfg.exists():
+                cmd.extend(["-c", str(cfg)])
+        return self._run(cmd)
 
     def get_versions(self) -> dict[str, str]:
         return {

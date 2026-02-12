@@ -62,7 +62,21 @@ class BuildService:
         if runner is None:
             pandoc_path = tools_cfg.get("pandoc") if isinstance(tools_cfg, dict) else None
             mmdc_path = tools_cfg.get("mmdc") if isinstance(tools_cfg, dict) else None
-            runner = SubprocessToolRunner(pandoc_path=pandoc_path, mmdc_path=mmdc_path)
+            mmdc_config_path: str | None = None
+            if isinstance(tools_cfg, dict) and tools_cfg.get("mmdc_config"):
+                mmdc_cfg = Path(str(tools_cfg.get("mmdc_config")))
+                if not mmdc_cfg.is_absolute():
+                    mmdc_cfg = (self.base_dir / mmdc_cfg).resolve()
+                mmdc_config_path = str(mmdc_cfg)
+            else:
+                default_cfg = (self.base_dir / "config" / "mermaid.json").resolve()
+                if default_cfg.exists():
+                    mmdc_config_path = str(default_cfg)
+            runner = SubprocessToolRunner(
+                pandoc_path=pandoc_path,
+                mmdc_path=mmdc_path,
+                mmdc_config_path=mmdc_config_path,
+            )
 
         raw_markdown = input_path.read_text(encoding="utf-8")
         front_matter, markdown_body = self._parse_front_matter(raw_markdown)
@@ -90,7 +104,12 @@ class BuildService:
                 else:
                     reference_doc_path = candidate_with_name
             else:
-                reference_doc_path = (config_dir / reference_doc_path).resolve()
+                candidate_from_config = (config_dir / reference_doc_path).resolve()
+                candidate_from_base = (self.base_dir / reference_doc_path).resolve()
+                if candidate_from_config.exists():
+                    reference_doc_path = candidate_from_config
+                else:
+                    reference_doc_path = candidate_from_base
 
         if not reference_doc_path.exists():
             return self._fail(EXIT_TEMPLATE_ERROR, f"Template file not found: {reference_doc_path}")
@@ -105,6 +124,16 @@ class BuildService:
         page_break_h1 = self._as_bool(
             front_matter.get("page_break_h1"), self._as_bool(defaults.get("page_break_h1"), True)
         )
+        mermaid_format = (
+            options.mermaid_format
+            or str(front_matter.get("mermaid_format") or "").strip().lower()
+            or str(defaults.get("mermaid_format") or "png").strip().lower()
+        )
+        if mermaid_format not in {"png", "svg"}:
+            return self._fail(
+                EXIT_ARG_ERROR,
+                f"Invalid mermaid format '{mermaid_format}'. Allowed: png, svg",
+            )
 
         logs_dir = (self.base_dir / "logs").resolve()
         cache_dir = (self.base_dir / ".cache" / "mermaid").resolve()
@@ -116,7 +145,7 @@ class BuildService:
 
         mermaid_rendered = 0
         if mermaid_enabled:
-            result = self._replace_mermaid_with_svg(markdown_body, cache_dir, runner)
+            result = self._replace_mermaid_with_image(markdown_body, cache_dir, runner, mermaid_format)
             if isinstance(result, BuildError):
                 return BuildResult(exit_code=result.code, error=result, warnings=warnings)
             markdown_body, mermaid_rendered = result
@@ -186,9 +215,10 @@ class BuildService:
                 "number_sections": number_sections,
                 "page_break_h1": page_break_h1,
                 "mermaid": mermaid_enabled,
+                "mermaid_format": mermaid_format,
                 "verbose": options.verbose,
             },
-            "front_matter": front_matter,
+            "front_matter": self._json_safe(front_matter),
             "mermaid": {
                 "blocks_detected": len(MERMAID_BLOCK_RE.findall(raw_markdown)),
                 "blocks_rendered": mermaid_rendered,
@@ -211,11 +241,12 @@ class BuildService:
             sha_path=sha_file,
         )
 
-    def _replace_mermaid_with_svg(
+    def _replace_mermaid_with_image(
         self,
         markdown_text: str,
         cache_dir: Path,
         runner: ToolRunner,
+        image_ext: str,
     ) -> tuple[str, int] | BuildError:
         count = 0
 
@@ -223,19 +254,19 @@ class BuildService:
             nonlocal count
             count += 1
             source = match.group(1).strip() + "\n"
-            digest = self._sha256_text(source)
+            digest = self._sha256_text(f"{image_ext}:{source}")
             mmd_path = cache_dir / f"{digest}.mmd"
-            svg_path = cache_dir / f"{digest}.svg"
-            if not svg_path.exists():
+            image_path = cache_dir / f"{digest}.{image_ext}"
+            if not image_path.exists():
                 mmd_path.write_text(source, encoding="utf-8")
                 try:
-                    mermaid_proc = runner.run_mermaid(mmd_path, svg_path)
+                    mermaid_proc = runner.run_mermaid(mmd_path, image_path)
                 except ToolRunnerError as exc:
                     raise RuntimeError(str(exc))
                 if mermaid_proc.returncode != 0:
                     msg = (mermaid_proc.stderr or mermaid_proc.stdout).strip() or "Unknown Mermaid rendering error"
                     raise RuntimeError(f"Mermaid block #{count}: {msg}")
-            return f"![Mermaid diagram {count}]({svg_path.resolve().as_posix()})\n"
+            return f"![Mermaid diagram {count}]({image_path.resolve().as_posix()})\n"
 
         try:
             converted = MERMAID_BLOCK_RE.sub(_replace, markdown_text)
@@ -376,3 +407,20 @@ class BuildService:
     @staticmethod
     def _fail(code: int, msg: str) -> BuildResult:
         return BuildResult(exit_code=code, error=BuildError(code, msg))
+
+    @staticmethod
+    def _json_safe(value: Any) -> Any:
+        if isinstance(value, (str, int, float, bool)) or value is None:
+            return value
+        if isinstance(value, Path):
+            return str(value)
+        if hasattr(value, "isoformat"):
+            try:
+                return value.isoformat()
+            except TypeError:
+                pass
+        if isinstance(value, dict):
+            return {str(k): BuildService._json_safe(v) for k, v in value.items()}
+        if isinstance(value, (list, tuple, set)):
+            return [BuildService._json_safe(v) for v in value]
+        return str(value)
