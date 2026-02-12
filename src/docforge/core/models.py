@@ -31,6 +31,7 @@ class BuildOptions:
     output_path: Path
     template_type: str | None = None
     config_path: Path = Path("config/templates.yaml")
+    template_dir: Path | None = None
     enable_mermaid: bool = True
     verbose: bool = False
 

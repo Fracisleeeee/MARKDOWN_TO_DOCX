@@ -39,6 +39,7 @@ class BuildService:
         config_path = options.config_path
         if not config_path.is_absolute():
             config_path = (self.base_dir / config_path).resolve()
+        config_dir = config_path.parent
 
         if not input_path.exists():
             return self._fail(EXIT_ARG_ERROR, f"Input file not found: {input_path}")
@@ -78,7 +79,18 @@ class BuildService:
 
         reference_doc_path = Path(reference_doc)
         if not reference_doc_path.is_absolute():
-            reference_doc_path = (self.base_dir / reference_doc_path).resolve()
+            if options.template_dir is not None:
+                template_dir = options.template_dir
+                if not template_dir.is_absolute():
+                    template_dir = (self.base_dir / template_dir).resolve()
+                candidate_with_subpath = (template_dir / reference_doc_path).resolve()
+                candidate_with_name = (template_dir / reference_doc_path.name).resolve()
+                if candidate_with_subpath.exists():
+                    reference_doc_path = candidate_with_subpath
+                else:
+                    reference_doc_path = candidate_with_name
+            else:
+                reference_doc_path = (config_dir / reference_doc_path).resolve()
 
         if not reference_doc_path.exists():
             return self._fail(EXIT_TEMPLATE_ERROR, f"Template file not found: {reference_doc_path}")

@@ -18,6 +18,11 @@ def build_parser() -> argparse.ArgumentParser:
         default="config/templates.yaml",
         help="Path to template config YAML (default: config/templates.yaml)",
     )
+    parser.add_argument(
+        "--template-dir",
+        default=None,
+        help="Override directory for relative template docx paths in config",
+    )
     parser.add_argument("--no-mermaid", action="store_true", help="Disable Mermaid rendering")
     parser.add_argument("--verbose", action="store_true", help="Verbose logs")
     return parser
@@ -35,6 +40,7 @@ def main(argv: list[str] | None = None) -> int:
         output_path=Path(args.output),
         template_type=args.doc_type,
         config_path=Path(args.config),
+        template_dir=Path(args.template_dir) if args.template_dir else None,
         enable_mermaid=not args.no_mermaid,
         verbose=args.verbose,
     )

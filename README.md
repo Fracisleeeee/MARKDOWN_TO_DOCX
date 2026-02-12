@@ -32,8 +32,19 @@ python3 docforge_cli.py --input examples/sample_tech.md --output output/sample_t
 - `--output` required
 - `--type` optional
 - `--config` optional (default `config/templates.yaml`)
+- `--template-dir` optional (override directory for template `.docx`)
 - `--no-mermaid` optional
 - `--verbose` optional
+
+Template override example (without editing config):
+
+```bash
+python3 build.py \
+  --input examples/sample_tech.md \
+  --output output/sample_tech.docx \
+  --type gov \
+  --template-dir /opt/docforge/templates
+```
 
 ## Exit Codes
 
