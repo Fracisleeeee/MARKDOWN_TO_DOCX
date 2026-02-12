@@ -1,0 +1,37 @@
+defaults:
+  type: tech
+  toc: true
+  number_sections: true
+  page_break_h1: true
+  mermaid: true
+
+tools:
+  # Optional absolute paths. Leave empty to resolve from PATH.
+  pandoc: null
+  mmdc: null
+
+templates:
+  gov:
+    reference_doc: templates/gov_template.docx
+    default_font: FangSong
+    line_spacing: 28
+    toc_style: gov_toc
+    header_footer_profile: gov_standard
+  tech:
+    reference_doc: templates/tech_template.docx
+    default_font: Calibri
+    line_spacing: 24
+    toc_style: tech_toc
+    header_footer_profile: tech_standard
+  compliance:
+    reference_doc: templates/compliance_template.docx
+    default_font: Times New Roman
+    line_spacing: 24
+    toc_style: compliance_toc
+    header_footer_profile: compliance_standard
+  audit:
+    reference_doc: templates/audit_template.docx
+    default_font: Times New Roman
+    line_spacing: 24
+    toc_style: audit_toc
+    header_footer_profile: audit_strict

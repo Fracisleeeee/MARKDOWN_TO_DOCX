@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.pyc
+venv/
+
+# Build/runtime artifacts
+.cache/
+output/*.docx
+logs/*.json
+logs/SHA256SUMS
+
+# Temporary files
+*.tmp
