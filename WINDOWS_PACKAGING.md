@@ -5,14 +5,21 @@ Current strategy: package CLI first, GUI later.
 ## Build EXE (on Windows)
 
 ```powershell
-py -m pip install -r requirements.txt
-py -m pip install pyinstaller==6.16.0
-pyinstaller packaging/pyinstaller.spec
+.\scripts\package_windows.ps1 -Clean
 ```
 
 ## Expected output
 
 - `dist/docforge.exe`
+
+## Test packaged executable
+
+```powershell
+.\scripts\test_packaged.ps1
+.\scripts\test_packaged.ps1 -RunBuildTest
+```
+
+`-RunBuildTest` requires `pandoc` available in `PATH`.
 
 ## Notes
 

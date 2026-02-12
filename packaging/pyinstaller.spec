@@ -1,14 +1,20 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+from pathlib import Path
 from PyInstaller.utils.hooks import collect_submodules
 
+ROOT = Path(SPECPATH).resolve().parent
 hiddenimports = collect_submodules("docforge")
 
 a = Analysis(
-    ['docforge_cli.py'],
-    pathex=['.'],
+    [str(ROOT / 'docforge_cli.py')],
+    pathex=[str(ROOT), str(ROOT / 'src')],
     binaries=[],
-    datas=[('config', 'config'), ('filters', 'filters'), ('templates', 'templates')],
+    datas=[
+        (str(ROOT / 'config'), 'config'),
+        (str(ROOT / 'filters'), 'filters'),
+        (str(ROOT / 'templates'), 'templates'),
+    ],
     hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},

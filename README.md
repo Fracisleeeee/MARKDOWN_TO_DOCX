@@ -47,3 +47,4 @@ python3 docforge_cli.py --input examples/sample_tech.md --output output/sample_t
 
 - Offline bundle: see `OFFLINE_DEPLOY.md`
 - Windows EXE packaging: see `WINDOWS_PACKAGING.md`
+- Windows scripts: `scripts/package_windows.ps1`, `scripts/test_packaged.ps1`

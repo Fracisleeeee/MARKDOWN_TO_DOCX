@@ -8,6 +8,8 @@ venv/
 output/*.docx
 logs/*.json
 logs/SHA256SUMS
+build/
+dist/
 
 # Temporary files
 *.tmp
