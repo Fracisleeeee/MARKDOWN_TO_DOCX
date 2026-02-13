@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-  [string]$Revision = "1108766",
+  [string]$Revision = "stable",
   [string]$ToolsRoot = "tools"
 )
 

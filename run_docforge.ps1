@@ -26,7 +26,12 @@ if (Test-Path $bundledChrome) {
   $env:PUPPETEER_EXECUTABLE_PATH = $edge86
 }
 
-$puppeteerCache = Join-Path $root "tools\puppeteer-cache"
+$localCacheRoot = $env:LOCALAPPDATA
+if ([string]::IsNullOrWhiteSpace($localCacheRoot)) {
+  $puppeteerCache = Join-Path $root "tools\puppeteer-cache"
+} else {
+  $puppeteerCache = Join-Path $localCacheRoot "DocForge\puppeteer-cache"
+}
 if (-not (Test-Path $puppeteerCache)) {
   New-Item -ItemType Directory -Force -Path $puppeteerCache | Out-Null
 }

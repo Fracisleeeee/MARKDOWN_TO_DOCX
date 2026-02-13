@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime as dt
 import hashlib
 import json
+import os
 import re
 from pathlib import Path
 from tempfile import NamedTemporaryFile
@@ -71,6 +72,7 @@ class BuildService:
             if edge_fallback and not browser_executable:
                 browser_executable = self._detect_windows_edge_path()
             mmdc_config_path: str | None = None
+            puppeteer_config_path: str | None = None
             if isinstance(tools_cfg, dict) and tools_cfg.get("mmdc_config"):
                 mmdc_cfg = Path(str(tools_cfg.get("mmdc_config")))
                 if not mmdc_cfg.is_absolute():
@@ -80,10 +82,20 @@ class BuildService:
                 default_cfg = (self.base_dir / "config" / "mermaid.json").resolve()
                 if default_cfg.exists():
                     mmdc_config_path = str(default_cfg)
+            if isinstance(tools_cfg, dict) and tools_cfg.get("puppeteer_config"):
+                pptr_cfg = Path(str(tools_cfg.get("puppeteer_config")))
+                if not pptr_cfg.is_absolute():
+                    pptr_cfg = (self.base_dir / pptr_cfg).resolve()
+                puppeteer_config_path = str(pptr_cfg)
+            else:
+                default_pptr_cfg = (self.base_dir / "config" / "puppeteer.json").resolve()
+                if default_pptr_cfg.exists():
+                    puppeteer_config_path = str(default_pptr_cfg)
             runner = SubprocessToolRunner(
                 pandoc_path=pandoc_path,
                 mmdc_path=mmdc_path,
                 mmdc_config_path=mmdc_config_path,
+                puppeteer_config_path=puppeteer_config_path,
                 browser_executable_path=browser_executable,
                 puppeteer_cache_dir=puppeteer_cache_dir,
             )
@@ -171,6 +183,7 @@ class BuildService:
             input_markdown="",
             output_path=output_path,
             reference_doc_path=reference_doc_path,
+            resource_paths=[input_path.parent, self.base_dir, cache_dir],
             selected_type=selected_type,
             toc_enabled=toc_enabled,
             number_sections=number_sections,
@@ -276,7 +289,7 @@ class BuildService:
                 if mermaid_proc.returncode != 0:
                     msg = (mermaid_proc.stderr or mermaid_proc.stdout).strip() or "Unknown Mermaid rendering error"
                     raise RuntimeError(f"Mermaid block #{count}: {msg}")
-            return f"![Mermaid diagram {count}]({image_path.resolve().as_posix()})\n"
+            return f"![Mermaid diagram {count}]({image_path.resolve().as_uri()})\n"
 
         try:
             converted = MERMAID_BLOCK_RE.sub(_replace, markdown_text)
@@ -290,6 +303,7 @@ class BuildService:
         input_markdown: str,
         output_path: Path,
         reference_doc_path: Path,
+        resource_paths: list[Path],
         selected_type: str,
         toc_enabled: bool,
         number_sections: bool,
@@ -311,6 +325,8 @@ class BuildService:
             str(filters_dir / "toc.lua"),
             "--lua-filter",
             str(filters_dir / "pagination.lua"),
+            "--resource-path",
+            self._join_resource_paths(resource_paths),
             "-M",
             f"template_type={selected_type}",
             "-M",
@@ -399,6 +415,17 @@ class BuildService:
     @staticmethod
     def _sha256_text(data: str) -> str:
         return hashlib.sha256(data.encode("utf-8")).hexdigest()
+
+    @staticmethod
+    def _join_resource_paths(paths: list[Path]) -> str:
+        unique: list[str] = []
+        seen: set[str] = set()
+        for p in paths:
+            rp = str(p.resolve())
+            if rp not in seen:
+                seen.add(rp)
+                unique.append(rp)
+        return os.pathsep.join(unique)
 
     @staticmethod
     def _sha256_file(path: Path) -> str:

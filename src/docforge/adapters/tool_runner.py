@@ -35,12 +35,14 @@ class SubprocessToolRunner(ToolRunner):
         pandoc_path: str | None = None,
         mmdc_path: str | None = None,
         mmdc_config_path: str | None = None,
+        puppeteer_config_path: str | None = None,
         browser_executable_path: str | None = None,
         puppeteer_cache_dir: str | None = None,
     ) -> None:
         self._pandoc_path = self._resolve_executable(pandoc_path, "pandoc")
         self._mmdc_path = self._resolve_executable(mmdc_path, "mmdc")
         self._mmdc_config_path = mmdc_config_path
+        self._puppeteer_config_path = puppeteer_config_path
         self._browser_executable_path = browser_executable_path
         self._puppeteer_cache_dir = puppeteer_cache_dir
 
@@ -99,6 +101,10 @@ class SubprocessToolRunner(ToolRunner):
             cfg = Path(self._mmdc_config_path)
             if cfg.exists():
                 cmd.extend(["-c", str(cfg)])
+        if self._puppeteer_config_path:
+            pptr_cfg = Path(self._puppeteer_config_path)
+            if pptr_cfg.exists():
+                cmd.extend(["-p", str(pptr_cfg)])
         return self._run(cmd, env=self._mermaid_env())
 
     def get_versions(self) -> dict[str, str]:
