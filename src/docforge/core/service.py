@@ -60,8 +60,16 @@ class BuildService:
 
         runner = self.tool_runner
         if runner is None:
-            pandoc_path = tools_cfg.get("pandoc") if isinstance(tools_cfg, dict) else None
-            mmdc_path = tools_cfg.get("mmdc") if isinstance(tools_cfg, dict) else None
+            pandoc_path = self._resolve_tool_path(tools_cfg, "pandoc")
+            mmdc_path = self._resolve_tool_path(tools_cfg, "mmdc")
+            browser_executable = self._resolve_tool_path(tools_cfg, "browser_executable")
+            puppeteer_cache_dir = self._resolve_tool_path(tools_cfg, "puppeteer_cache_dir")
+            edge_fallback = self._as_bool(
+                tools_cfg.get("edge_fallback") if isinstance(tools_cfg, dict) else None,
+                True,
+            )
+            if edge_fallback and not browser_executable:
+                browser_executable = self._detect_windows_edge_path()
             mmdc_config_path: str | None = None
             if isinstance(tools_cfg, dict) and tools_cfg.get("mmdc_config"):
                 mmdc_cfg = Path(str(tools_cfg.get("mmdc_config")))
@@ -76,6 +84,8 @@ class BuildService:
                 pandoc_path=pandoc_path,
                 mmdc_path=mmdc_path,
                 mmdc_config_path=mmdc_config_path,
+                browser_executable_path=browser_executable,
+                puppeteer_cache_dir=puppeteer_cache_dir,
             )
 
         raw_markdown = input_path.read_text(encoding="utf-8")
@@ -333,6 +343,31 @@ class BuildService:
         if isinstance(value, int):
             return value != 0
         return default
+
+    def _resolve_tool_path(self, tools_cfg: Any, key: str) -> str | None:
+        if not isinstance(tools_cfg, dict):
+            return None
+        raw = tools_cfg.get(key)
+        if raw is None:
+            return None
+        value = str(raw).strip()
+        if not value:
+            return None
+        path = Path(value)
+        if path.is_absolute():
+            return str(path)
+        return str((self.base_dir / path).resolve())
+
+    @staticmethod
+    def _detect_windows_edge_path() -> str | None:
+        candidates = [
+            Path(r"C:\Program Files\Microsoft\Edge\Application\msedge.exe"),
+            Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"),
+        ]
+        for candidate in candidates:
+            if candidate.exists():
+                return str(candidate)
+        return None
 
     @staticmethod
     def _load_yaml(path: Path) -> dict[str, Any]:

@@ -1,7 +1,8 @@
 [CmdletBinding()]
 param(
   [string]$ExePath = ".\dist\docforge.exe",
-  [switch]$RunBuildTest
+  [switch]$RunBuildTest,
+  [switch]$RunMermaidTest
 )
 
 $ErrorActionPreference = "Stop"
@@ -23,6 +24,14 @@ if ($RunBuildTest) {
   & $ExePath --input .\examples\sample_compliance.md --output .\output\packaged_test.docx --type compliance --no-mermaid
   if ($LASTEXITCODE -ne 0) {
     throw "Build test failed with code $LASTEXITCODE"
+  }
+}
+
+if ($RunMermaidTest) {
+  Write-Host "[INFO] Running Mermaid build test"
+  & $ExePath --input .\examples\stress_tech_high_complexity.md --output .\output\packaged_mermaid_test.docx --type tech
+  if ($LASTEXITCODE -ne 0) {
+    throw "Mermaid build test failed with code $LASTEXITCODE"
   }
 }
 

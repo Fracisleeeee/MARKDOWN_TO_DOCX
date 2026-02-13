@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -34,10 +35,14 @@ class SubprocessToolRunner(ToolRunner):
         pandoc_path: str | None = None,
         mmdc_path: str | None = None,
         mmdc_config_path: str | None = None,
+        browser_executable_path: str | None = None,
+        puppeteer_cache_dir: str | None = None,
     ) -> None:
         self._pandoc_path = self._resolve_executable(pandoc_path, "pandoc")
         self._mmdc_path = self._resolve_executable(mmdc_path, "mmdc")
         self._mmdc_config_path = mmdc_config_path
+        self._browser_executable_path = browser_executable_path
+        self._puppeteer_cache_dir = puppeteer_cache_dir
 
     @staticmethod
     def _resolve_executable(override: str | None, default_name: str) -> str | None:
@@ -61,12 +66,24 @@ class SubprocessToolRunner(ToolRunner):
         return None
 
     @staticmethod
-    def _run(command: list[str]) -> CompletedProcessLike:
+    def _run(command: list[str], env: dict[str, str] | None = None) -> CompletedProcessLike:
         try:
-            proc = subprocess.run(command, capture_output=True, text=True, check=False)
+            proc = subprocess.run(command, capture_output=True, text=True, check=False, env=env)
         except OSError as exc:
             raise ToolRunnerError(str(exc)) from exc
         return CompletedProcessLike(proc.returncode, proc.stdout or "", proc.stderr or "")
+
+    def _mermaid_env(self) -> dict[str, str]:
+        env = dict(os.environ)
+        if self._browser_executable_path:
+            browser_path = Path(self._browser_executable_path)
+            if browser_path.exists():
+                env["PUPPETEER_EXECUTABLE_PATH"] = str(browser_path)
+        if self._puppeteer_cache_dir:
+            cache_dir = Path(self._puppeteer_cache_dir)
+            cache_dir.mkdir(parents=True, exist_ok=True)
+            env["PUPPETEER_CACHE_DIR"] = str(cache_dir)
+        return env
 
     def run_pandoc(self, args: list[str]) -> CompletedProcessLike:
         if not self._pandoc_path:
@@ -82,7 +99,7 @@ class SubprocessToolRunner(ToolRunner):
             cfg = Path(self._mmdc_config_path)
             if cfg.exists():
                 cmd.extend(["-c", str(cfg)])
-        return self._run(cmd)
+        return self._run(cmd, env=self._mermaid_env())
 
     def get_versions(self) -> dict[str, str]:
         return {
