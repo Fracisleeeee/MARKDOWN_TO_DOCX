@@ -10,9 +10,17 @@ tools:
   # Optional absolute paths. Leave empty to resolve from PATH.
   pandoc: null
   mmdc: null
+  # Preferred Mermaid browser executable. Relative paths are resolved from bundle root.
+  browser_executable: tools/chromium/chrome.exe
+  # Puppeteer cache path used by Mermaid rendering (should be writable on intranet hosts).
+  puppeteer_cache_dir: tools/puppeteer-cache
+  # Fallback to Microsoft Edge when browser_executable is unavailable.
+  edge_fallback: true
   # Optional mermaid config passed to mmdc -c.
   mmdc_config: config/mermaid.json
-
+  # Optional puppeteer launch config passed to mmdc -p.
+  puppeteer_config: config/puppeteer.json
+  
 templates:
   gov:
     reference_doc: templates/gov_template.docx
