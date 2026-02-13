@@ -70,7 +70,15 @@ class SubprocessToolRunner(ToolRunner):
     @staticmethod
     def _run(command: list[str], env: dict[str, str] | None = None) -> CompletedProcessLike:
         try:
-            proc = subprocess.run(command, capture_output=True, text=True, check=False, env=env)
+            proc = subprocess.run(
+                command,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                check=False,
+                env=env,
+            )
         except OSError as exc:
             raise ToolRunnerError(str(exc)) from exc
         return CompletedProcessLike(proc.returncode, proc.stdout or "", proc.stderr or "")
